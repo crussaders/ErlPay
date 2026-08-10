@@ -21,7 +21,8 @@ create(Id, Name) ->
 
 deposit(Account, Amount) when Amount >0 ->
   CurrentBalance = maps:get(balance, Account),
-  Account#{balance => CurrentBalance + Amount};
+  NewAccount = Account#{balance => CurrentBalance + Amount},
+  {ok, NewAccount};
 
 deposit(_Account, _Amount) ->
   {error, invalid_Amount}.

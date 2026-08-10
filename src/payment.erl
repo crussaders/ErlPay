@@ -15,11 +15,16 @@
 transfer(FromAccount, ToAccount, Amount) when Amount > 0 ->
   case account:withdraw(FromAccount, Amount) of
     {ok, UpdatedFromAccount} ->
-      UpdatedToAccount = account:deposit(ToAccount, Amount),
-      {ok, UpdatedFromAccount, UpdatedToAccount};
+      case account:deposit(ToAccount, Amount) of
+      {ok, UpdatedToAccount} ->
+        Transaction = transaction:create(UpdatedFromAccount, UpdatedToAccount, Amount),
+        {ok, UpdatedFromAccount, UpdatedToAccount, Transaction};
 
-    {error, Reason} ->
-      {error, Reason}
+        {error, Reason} ->
+          {error, Reason}
+      end;
+        {error, Reason} ->
+          {error, Reason}
   end;
 transfer(_FromAccount, _ToAccount, _Amount) ->
   {error, invalid_Amount}.
