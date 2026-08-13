@@ -242,3 +242,8 @@ Created by [crussaders](https://github.com/crussaders)
 ---
 
 **Last Updated**: August 10, 2026
+
+## What is ETS?
+
+ETS(Erlang Term Storage) is an in-memory storage system built into Erlang.
+It's very fast because it's stored in memory.
