@@ -118,6 +118,67 @@ erl
 > transaction:get_history(Account1).
 ```
 
+### Starting the OTP components (exact commands)
+
+1. Compile modules from the project root:
+```bash
+erl -make
+```
+
+2. Start the transaction storage (ETS-backed helper):
+```erlang
+% In the Erlang shell
+erl
+
+% Start or ensure the named ETS table is present
+> transaction_store:start().
+```
+
+3. Start the supervisor (starts the transaction_server worker):
+```erlang
+% Start the supervisor which starts transaction_server
+> payment_sup:start_link().
+```
+
+4. Verify the transaction server is running and list stored transactions:
+```erlang
+% List transactions managed by the transaction_server gen_server
+> transaction_server:list().
+```
+
+5. Create accounts, deposit funds, and perform a transfer (use these exact functions found in src/):
+```erlang
+% Create account maps
+> A1 = account:create(alice, "Alice").
+> A2 = account:create(bob, "Bob").
+
+% Deposit to provide funds
+> {ok, A1b} = account:deposit(A1, 1000).
+> {ok, A2b} = account:deposit(A2, 100).
+
+% Perform a transfer (payment:transfer/3)
+% signature: payment:transfer(FromAccount, ToAccount, Amount)
+> payment:transfer(A1b, A2b, 250).
+% Expected: {ok, UpdatedFromAccount, UpdatedToAccount, Transaction}
+```
+
+6. Inspect stored transactions (either via transaction_server or transaction_store):
+```erlang
+% Fetch by id using transaction_server
+> transaction_server:get(<transaction_id>).
+
+% Or read the ETS named table (transaction_store:list())
+> transaction_store:list().
+```
+
+Notes:
+- Modules and functions referenced above are present in src/: account.erl, payment.erl, payment_sup.erl, transaction_server.erl, transaction_store.erl.
+- The supervisor (payment_sup) starts transaction_server (a gen_server) which manages an ETS table for transactions.
+- If you prefer to run the system without the supervisor for quick tests, you can start transaction_server directly:
+```erlang
+> transaction_server:start_link().
+```
+
 ## Testing Examples
 
 (Examples retained from previous version; adjust module names to match the code in this repo.)
