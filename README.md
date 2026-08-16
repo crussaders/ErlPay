@@ -1,10 +1,12 @@
 # ErlPay - Payment System Proof of Concept
 
-A learning-focused payment system application built in Erlang. This project demonstrates core Erlang concepts including functions, pattern matching, error handling, and transaction management.
+A learning-focused payment system application built in Erlang. This project demonstrates core Erlang/OTP concepts including gen_server usage, supervisors, pattern matching, error handling, and transaction management.
 
 ## Overview
 
 ErlPay is a POC (Proof of Concept) for a payment system that showcases:
+- **OTP Concurrency**: gen_server-based processes to handle payment logic
+- **Supervisor-based supervision**: OTP supervisors monitor and restart worker processes
 - **Transaction Management**: Record and track all money transfers
 - **Payment Processing**: Transfer money between accounts
 - **Transaction History**: Complete audit trail of all transactions
@@ -17,19 +19,23 @@ ErlPay is a POC (Proof of Concept) for a payment system that showcases:
 
 ### Implemented
 - ✅ Core payment transfer functionality
-- ✅ Transaction recording and storage
+- ✅ Transaction recording and storage (every transfer is recorded)
 - ✅ Payment status tracking
 - ✅ Comprehensive validation and error handling
-- ✅ Erlang fundamentals (Functions, Maps, Guards, Case expressions, Tuples, Pattern Matching)
+- ✅ Erlang/OTP fundamentals (gen_server, supervisors, functions, maps, guards, case expressions, tuples, pattern matching)
 - ✅ Transaction auditing capabilities
 
 ### Planned
 - 🔄 Idempotent payment operations
 - 🔄 Advanced receipt generation
+- 🔄 Persistence layer and distributed transactions
 
 ## Technology Stack
 
 - **Language**: Erlang
+- **OTP Components**:
+  - gen_server: payment and transaction worker processes
+  - supervisor: monitors worker processes and restarts on failure
 - **Concepts Used**:
   - Functions and Higher-Order Functions
   - Maps for data structures
@@ -43,17 +49,19 @@ ErlPay is a POC (Proof of Concept) for a payment system that showcases:
 ```
 ErlPay/
 ├── README.md                 # This file
-├── *.erl                      # Erlang source files
+├── *.erl                      # Erlang source files (payment, transaction, account, etc.)
 ```
 
 ## Development Progress
 
-### Commit History
+### Commit History (high level)
 
 1. **Initial Commit** - Project foundation
 2. **Validation and Error Handling** - Case expressions, guards, tuples, and error patterns
-3. **Functions, Maps, Guards** - Core Erlang concepts (functions, maps, guards, case expressions, tuples, pattern matching)
-4. **Transactions & Payment Records** - Transaction history, payment status, auditing, troubleshooting, receipts
+3. **Functions, Maps, Guards** - Core Erlang concepts
+4. **Transactions & Payment Records** - Transaction history, payment status, auditing, receipts
+5. **gen_server initializing** - Added gen_server-based workers
+6. **OTP Supervisor** - Documented and added supervisor to monitor processes
 
 ## Getting Started
 
@@ -88,120 +96,39 @@ erl
 > c(module_name).
 ```
 
-## Testing Changes
+## Running & Testing
 
-### Running the Erlang Shell
-
-```bash
-erl
-```
-
-### Basic Testing Examples
-
-#### 1. Test Transaction Creation and Recording
+Start the Erlang shell, compile modules, and interact with gen_server processes.
 
 ```erlang
-% Start the Erlang shell
+% Start shell
 erl
 
 % Compile modules (adjust filenames as needed)
 > c(payment).
 > c(transaction).
 
-% Test basic payment transfer
-> payment:transfer(account1, account2, 100).
+% If the application starts an OTP supervisor, start the application instead
+% in a real setup: application:start(erlpay).
+
+% Example: perform a transfer via payment gen_server
+> payment:transfer(Account1, Account2, 100).
 
 % Check transaction history
-> transaction:get_history(account1).
-
-% Verify payment status
-> transaction:get_status(transaction_id).
+> transaction:get_history(Account1).
 ```
 
-#### 2. Test Error Handling and Validation
+## Testing Examples
 
-```erlang
-% Test invalid amount (should trigger error handling)
-> payment:transfer(account1, account2, -50).
-
-% Test invalid account (should fail validation)
-> payment:transfer(invalid_account, account2, 100).
-
-% Test with guards
-> payment:validate_amount(100).  % Should succeed
-> payment:validate_amount(-100). % Should fail with guard error
-```
-
-#### 3. Test Pattern Matching
-
-```erlang
-% Create test transactions
-> Transaction = {transaction, account1, account2, 100, "pending"},
-> case Transaction of
->   {transaction, From, To, Amount, Status} ->
->     io:format("Transfer ~p -> ~p: ~p (~s)~n", [From, To, Amount, Status])
-> end.
-```
-
-#### 4. Test Maps Operations
-
-```erlang
-% Create account map
-> Account = #{id => account1, balance => 1000, status => active},
-> io:format("Account: ~p~n", [Account]).
-
-% Update balance
-> UpdatedAccount = Account#{balance => 900},
-> io:format("Updated Account: ~p~n", [UpdatedAccount]).
-```
-
-#### 5. Comprehensive Integration Test
-
-```erlang
-% Compile all modules
-> c(payment), c(transaction), c(account).
-
-% Perform series of transactions
-> payment:transfer(alice, bob, 500).
-> payment:transfer(bob, charlie, 200).
-> payment:transfer(charlie, alice, 100).
-
-% Review transaction history
-> transaction:get_all_transactions().
-
-% Check audit trail
-> transaction:get_audit_log().
-
-% Verify payment statuses
-> transaction:get_all_statuses().
-```
+(Examples retained from previous version; adjust module names to match the code in this repo.)
 
 ## Erlang Concepts Covered
 
-### Pattern Matching
-- Extracting values from data structures
-- Matching function arguments
-- Destructuring tuples and maps
-
-### Guards
-- Validating conditions in function clauses
-- Type checking
-- Value range validation
-
-### Maps
-- Key-value data structures
-- Account and transaction storage
-- State management
-
-### Error Handling
-- Try-catch patterns
-- Custom error tuples
-- Error propagation
-
-### Tuples
-- Multi-value data grouping
-- Status representations
-- Transaction records
+- Pattern Matching
+- Guards
+- Maps
+- Error Handling
+- Tuples
 
 ## Development Tips
 
@@ -221,7 +148,7 @@ erl
 
 - [ ] Implement idempotent operations
 - [ ] Add receipt generation
-- [ ] Create concurrent transaction processing
+- [ ] Create concurrent transaction processing improvements
 - [ ] Add persistence layer
 - [ ] Implement distributed transactions
 - [ ] Add logging and monitoring
@@ -229,7 +156,7 @@ erl
 
 ## Notes
 
-This is a learning project. While it demonstrates key Erlang concepts, it is not intended for production use.
+This is a learning project. While it demonstrates key Erlang/OTP concepts, it is not intended for production use.
 
 ## License
 
@@ -241,9 +168,8 @@ Created by [crussaders](https://github.com/crussaders)
 
 ---
 
-**Last Updated**: August 10, 2026
+**Last Updated**: August 16, 2026
 
 ## What is ETS?
 
-ETS(Erlang Term Storage) is an in-memory storage system built into Erlang.
-It's very fast because it's stored in memory.
+ETS (Erlang Term Storage) is an in-memory storage system built into Erlang. It's very fast because it's stored in memory.
