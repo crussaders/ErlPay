@@ -31,8 +31,19 @@ init([]) ->
     shutdown => 5000,
     type => worker
   },
+  PaymentServer = #{
+    id => payment_server,
+    start => {
+      payment_server,
+      start_link,
+      []
+    },
+    restart => permanent,
+    shutdown => 5000,
+    type => worker
+  },
 
   {ok , {
     {one_for_one, 5, 10},
-    [TransactionServer]
+    [TransactionServer, PaymentServer]
   }}.

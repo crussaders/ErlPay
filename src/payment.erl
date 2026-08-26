@@ -18,7 +18,7 @@ transfer(FromAccount, ToAccount, Amount) when Amount > 0 ->
       case account:deposit(ToAccount, Amount) of
       {ok, UpdatedToAccount} ->
         Transaction = transaction:create(UpdatedFromAccount, UpdatedToAccount, Amount),
-        transaction_store:save(Transaction),
+        transaction_server:save(Transaction),
         {ok, UpdatedFromAccount, UpdatedToAccount, Transaction};
 
         {error, Reason} ->
