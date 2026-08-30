@@ -39,3 +39,10 @@ spawn(fun() ->
 
   ok.
 
+%%R1 = payment_server:transfer(
+%%<<"PAY-001">>,
+%%1001,
+%%1002,
+%%20000
+%%).
+

@@ -14,7 +14,7 @@
 %% API
 -export([
   start_link/0,
-  transfer/3,
+  transfer/4,
   get_account/1,
   create_account/2,
   deposit/2
@@ -47,47 +47,64 @@ get_account(Id) ->
     payment_server,{get_account, Id}
   ).
 
-transfer(FromId, ToId, Amount) ->
+transfer(IdempotencyKey,FromId, ToId, Amount) ->
   gen_server:call(
-    payment_server,{transfer, FromId, ToId, Amount}
+    payment_server,{transfer, IdempotencyKey, FromId, ToId, Amount}
   ).
 
 deposit(Id, Amount) ->
   gen_server:call(payment_server,{deposit, Id, Amount}).
 
-init([]) -> {
-  ok, #{}
-}.
+%%init([]) -> {
+%%  ok, #{}
+%%}.
+
+%%with idempotency
+init([]) ->
+  State = #{
+    accounts => #{},
+    processed_payments => #{}
+  },
+
+  {ok, State}.
 
 handle_call(
     {create_account, Id, Name},
     _From,
-    Accounts
+    State
 ) ->
+  Accounts = maps:get(accounts, State),
   Account = account:create(Id, Name),
   NewAccounts = Accounts#{
     Id => Account
   },
-  {reply, {ok, Account}, NewAccounts};
+
+  NewState = State#{
+    accounts => NewAccounts
+  },
+  {reply, {ok, Account}, NewState};
 
 handle_call(
     {get_account, Id},
     _From,
-    Accounts
+    State
 ) ->
+  Accounts = maps:get(accounts, State),
   case maps:find(Id, Accounts) of
     {ok, Account} ->
-      {reply, {ok, Account}, Accounts};
+      {reply, {ok, Account}, State};
 
     error ->
-      {reply, {error, account_not_found}, Accounts}
+      {reply, {error, account_not_found}, State}
   end;
 
 handle_call(
     {deposit, Id, Amount},
     _From,
-    Accounts
+    State
 ) ->
+
+  Accounts = maps:get(accounts, State),
   case maps:find(Id, Accounts) of
     {ok, Account} ->
       case account:deposit(Account, Amount) of
@@ -96,29 +113,63 @@ handle_call(
             Id => UpdatedAccount
           },
 
+          NewState = State#{
+            accounts => NewAccounts
+          },
+
           {reply,
             {ok, UpdatedAccount},
-            NewAccounts};
+          NewState};
 
         {error, Reason} ->
           {reply,
             {error, Reason},
-            Accounts
+            State
           }
       end;
 
     error -> {
       reply,
       {error, account_not_found},
-      Accounts
+      State
     }
   end;
 
 handle_call(
-    {transfer, FromId, ToId, Amount},
+    {transfer,IdempotencyKey, FromId, ToId, Amount},
     _From,
-    Accounts
+    State
 ) ->
+
+  ProcessedPayments = maps:get(processed_payments, State),
+
+  case
+%%    maps:find(FromId, Accounts),
+%%    maps:find(ToId, Accounts),
+    maps:find(IdempotencyKey, ProcessedPayments)
+   of
+    {ok, ExistingTransaction} ->
+      {reply, {
+        ok, ExistingTransaction
+      }, State};
+    error -> {Result, NewState} =
+    process_transfer(IdempotencyKey, FromId, ToId, Amount, State),
+      {
+        reply,
+        Result,
+        NewState
+      }
+  end.
+
+process_transfer(
+    IdempotencyKey,
+    FromId,
+    ToId,
+    Amount,
+    State
+) ->
+  Accounts = maps:get(accounts, State),
+
   case {
     maps:find(FromId, Accounts),
     maps:find(ToId, Accounts)
@@ -129,24 +180,33 @@ handle_call(
         ToAccount,
         Amount
       ) of
-        {ok, UpdatedFrom, UpdateTo, Transaction} ->
+        {ok, UpdatedFrom, UpdatedTo, Transaction} ->
           NewAccounts = Accounts#{
             FromId => UpdatedFrom,
-            ToId => UpdateTo
+            ToId => UpdatedTo
           },
-          {reply,
-            {ok, Transaction},
-            NewAccounts};
+
+          ProcesssedPayments =
+          maps:get(processed_payments, State),
+
+          NewProcessedPayments =
+          ProcesssedPayments#{
+            IdempotencyKey => Transaction
+          },
+
+          NewState = State#{
+            accounts => NewAccounts,
+            processed_payments => NewProcessedPayments
+          },
+
+          {{ok, Transaction}, NewState};
+
         {error, Reason} ->
-          {reply,
-            {error, Reason},
-            Accounts}
+          {{error, Reason}, State}
       end;
 
     _ ->
-      {reply,
-        {error, account_not_found},
-        Accounts}
+      {{error, account_not_found}, State}
   end.
 
 
